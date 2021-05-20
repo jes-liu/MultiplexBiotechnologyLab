@@ -1,27 +1,40 @@
 rm(list=ls())
 
 # Points----
-num_points <- 40  # number of points for each type
+num_points <- 400  # number of points for each type
 num_type_points <- 25  # number of types of points
 
-x_dim <- 50
-y_dim <- 20
+radius <- 1
+
+ppx <- 100  # points per x axis
+ppy <- num_points*num_type_points/ppx  # points per y axis
+
+x_dim <- ppx*2*radius
+y_dim <- ppy*2*radius
 
 xpoints <- integer()
 ypoints <- integer()
-for (i in 1:x_dim) {
-  xpoints <- append(xpoints, rep.int(i, y_dim), after=length(xpoints))
-  ypoints <- append(ypoints, 1:y_dim, after=length(ypoints))
+for (i in 1:ppx) {
+  print(i)
+  xpoints <- append(xpoints, rep.int(i*2*radius-radius, ppy), after=length(xpoints))
+  ypoints <- append(ypoints, seq(from=radius, to=y_dim, by=2*radius), 
+                    after=length(ypoints))
 }
 
 pal <- colorRampPalette(c("red", "yellow"))
 pal <- pal(num_type_points)
-rand_colors = sample(pal, x_dim*y_dim, replace=TRUE)
+pal <- rep(pal, num_points)
+rand_colors = sample(pal, ppx*ppy, replace=FALSE)
 
 df_points <- data.frame(X = xpoints, Y = ypoints, Color = rand_colors)
 
-plot(df_points$X, df_points$Y, xlim=c(1,x_dim), ylim=c(1,y_dim), col=df_points$Color,
-     xlab="X", ylab="Y")
+plot(df_points$X, df_points$Y, xlim=c(0-1,x_dim), ylim=c(0-1,y_dim), 
+     col=df_points$Color, xlab="X", ylab="Y", pch=19)
+
+for (i in 1:(num_points*num_type_points)) {
+  symbols(df_points$X[i], df_points$Y[i], circles=radius,
+          add=TRUE, inches=FALSE, bg=df_points$Color[i])
+}
 
 # Nearest Distance then plot distribution----
 find_nearest_neighbors <- function(df) {
@@ -48,9 +61,15 @@ find_nearest_neighbors <- function(df) {
       dist <- append(dist, min_dist, after=as.numeric(rownames(df_color)[j])-1)
     }
   }
-  return(dist)
+  df$Distance = dist
+  return(df)
 }
 
-distance <- find_nearest_neighbors(df_points)
-hist(distance)
-summary(distance)
+df_points <- find_nearest_neighbors(df_points)
+hist(df_points$Distance)
+summary(df_points$Distance)
+sd(df_points$Distance)
+
+mean_by_color <- aggregate(df_points[, 4], list(df_points$Color), mean)
+barplot(mean_by_color$x, col=mean_by_color$Group.1, xlab='Colors (by code)', ylab='mean')
+sd(mean_by_color$x)
