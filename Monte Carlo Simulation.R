@@ -5,20 +5,20 @@ num_points <- 400  # number of points for each type
 num_type_points <- 25  # number of types of points
 
 radius <- 1
+space <- 2  # the gap between two circles
 
 ppx <- 100  # points per x axis
 ppy <- num_points*num_type_points/ppx  # points per y axis
 
-x_dim <- ppx*2*radius
-y_dim <- ppy*2*radius
+x_dim <- ppx*2*radius + space*ppx
+y_dim <- ppy*2*radius + space*ppy
 
 xpoints <- integer()
 ypoints <- integer()
 for (i in 1:ppx) {
-  print(i)
-  xpoints <- append(xpoints, rep.int(i*2*radius-radius, ppy), after=length(xpoints))
-  ypoints <- append(ypoints, seq(from=radius, to=y_dim, by=2*radius), 
-                    after=length(ypoints))
+  coords <- seq(from=radius, to=y_dim, by=2*radius+space)
+  xpoints <- append(xpoints, rep.int(coords[i], ppy), after=length(xpoints))
+  ypoints <- append(ypoints, coords, after=length(ypoints))
 }
 
 pal <- colorRampPalette(c("red", "yellow"))
@@ -73,3 +73,7 @@ sd(df_points$Distance)
 mean_by_color <- aggregate(df_points[, 4], list(df_points$Color), mean)
 barplot(mean_by_color$x, col=mean_by_color$Group.1, xlab='Colors (by code)', ylab='mean')
 sd(mean_by_color$x)
+
+sorted_df <- df_points[order(-df_points$Distance),]
+sorted_df[101,]$Distance
+sorted_df[501,]$Distance
