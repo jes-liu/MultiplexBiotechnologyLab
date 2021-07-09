@@ -118,7 +118,8 @@ for (x in 1:(ncol-1)) {
 library(limma)
 library(edgeR)
 
-
+hc <- hclust(dist(1-corr_final))
+plot(hc)
 
 ad_pairs <- data.frame(protein1 = protein1,
                        protein2 = protein2,
