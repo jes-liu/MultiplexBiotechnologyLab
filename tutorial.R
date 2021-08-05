@@ -81,7 +81,24 @@ df[1:2,]
 df$Eyes <- c("Blue", "Brown", "Green")
 df
 
+# functions ----
+values <- 1:1000
+mean(values)
+m <- mean(values)
+# median, max, min, sum, sd, log, sqrt, ?/help()
+class(values)
+length(values)
+
+
+# plots ----
+
+
+# loops ----
+
+
+# creating functions ----
 
 
 
+# packages ----
 
