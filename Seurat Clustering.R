@@ -50,7 +50,7 @@ print("Data Preprocessed")
 # identification of highly variable features ----
 # i,e. they are highly expressed in some cells, and lowly expressed in others
 print("Finding Variable Features")
-allData <- FindVariableFeatures(data_norm, selection.method="vst", nfeatures=80)
+allData <- FindVariableFeatures(data_norm, selection.method="vst")
 
 # scaling the data
 # only add in features that will be used in PCA
@@ -87,24 +87,15 @@ DimPlot(data_umap, reduction='umap', label=TRUE,
 
 # heatmap ----
 
-# # building cluster tree
-# data_tree <- BuildClusterTree(data_umap, reorder=TRUE)
-# PlotClusterTree(data_tree)
-
 # finding markers
 print("Finding Markers")
-data_markers <- FindAllMarkers(data_umap, only.pos=TRUE)
-top <- data_markers %>% group_by(cluster) %>% top_n(n=10, wt=avg_log2FC)
-print("Markers Found")
-DoHeatmap(data_umap, features=top$gene, group.by="Condition") + NoLegend()
-
-
-# wip
 AD_markers <- FindMarkers(data_umap, ident.1="AD", only.pos=TRUE,
-                            group.by="Condition", logfc.threshold=.1)
+                          group.by="Condition", logfc.threshold=.1)
 WT_markers <- FindMarkers(data_umap, ident.1="WT", only.pos=TRUE,
                           group.by="Condition", logfc.threshold=.1)
 topAD <- AD_markers %>% top_n(n=30, wt=avg_log2FC)
 topWT <- WT_markers %>% top_n(n=30, wt=avg_log2FC)
 total_top <- c(rownames(topAD), rownames(topWT))
+print("Markers Found")
 DoHeatmap(data_umap, features=total_top, group.by="Condition") + NoLegend()
+
