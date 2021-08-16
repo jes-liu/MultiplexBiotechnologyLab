@@ -7,6 +7,7 @@ library(patchwork)
 library(openxlsx)
 
 print("Reading Data")
+#dir <- "C:/Users/jesse/OneDrive/Documents/Multiplex Lab/Data/Data_unified_minusBackG.xlsx"
 dir <- "C:/Users/jesse/OneDrive/Documents/Multiplex Lab/Data/Data_unifiedB.xlsx"
 
 
@@ -15,12 +16,12 @@ dir <- "C:/Users/jesse/OneDrive/Documents/Multiplex Lab/Data/Data_unifiedB.xlsx"
 raw <- data.frame(read.xlsx(dir))
 
 # get data groups
-type <- raw$type  #ad - 1:721, wt - 722:1396
+type <- raw$type
 label <- raw$Label
 
 # read only the columns with expression data and type
 #data_raw <- raw[,c(3,5:length(raw))]
-data_raw <- raw[,5:length(raw)]
+data_raw <- raw[,4:length(raw)]
 
 # changing dataframe into matrix
 data_raw <- data.matrix(data_raw)
@@ -99,3 +100,8 @@ total_top <- c(rownames(topAD), rownames(topWT))
 print("Markers Found")
 DoHeatmap(data_umap, features=total_top, group.by="Condition") + NoLegend()
 
+
+# dotplot ----
+DotPlot(data_umap, features=total_top, cols=c("blue", "red"), 
+        split.by="Condition", dot.scale=8) + RotatedAxis()
+print("Plots Created")
