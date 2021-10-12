@@ -13,84 +13,79 @@ dir = "C:/Users/jesse/OneDrive/Documents/Multiplex Lab/Data/Intensities_minBG.xl
 raw <- data.frame(read.xlsx(dir))
 data_raw <- raw[,1:length(raw)]
 
-#boxplot(data_raw)
-
-
 data_raw <- t(data.matrix(data_raw))
 
 data <- CreateSeuratObject(data_raw)
 
-# ----
+# Creating Clusters ----
 
 data_norm <- data
-#data_norm <- NormalizeData(data)
 allData <- FindVariableFeatures(data_norm, selection.method="vst", nfeatures=29)
 allProteins <- rownames(allData)
 data_scale <- ScaleData(allData, features=allProteins)
 data_pca <- RunPCA(data_scale, features=VariableFeatures(allData))
 
-# data_jackstraw <- JackStraw(data_pca)
-# data_score <- ScoreJackStraw(data_jackstraw, dims=1:15)
-# ElbowPlot(data_score)
-
-data_nn <- FindNeighbors(data_pca, dims=1:28)
+data_nn <- FindNeighbors(data_pca, dims=1:25)
 data_clus <- FindClusters(data_nn)
-data_umap <- RunUMAP(data_clus, dims=1:28)
-# min.dist, spread, n.neighbors
+data_umap <- RunUMAP(data_clus, dims=1:25, min.dist=.1, spread=2, n.neighbors=50)
 
 DimPlot(data_umap, label=TRUE)
 
 FeaturePlot(data_umap, features=allProteins)  # 1400x2200
-# min.cutoff=
-
-
-# # get hist of num of values per cell in cluster 0
-# # get hist of the value distribution in cluster 0
-# index = which(data_tsne$seurat_clusters == 0)
-# data_re = data.frame(t(data_raw))
-# subset = data_re[index,]
-# nrow = nrow(subset)
-# ncol = ncol(subset)
-# 
-# array = vector()
-# values = vector()
-# for (x in 1:nrow) {
-#   num = 0
-#   for (y in 1:ncol) {
-#     if (subset[x, y] > 0) {
-#       num = num + 1
-#       values = append(values, subset[x, y])
-#     }
-#   }
-#   array = append(array, num)
-# }
-# hist(array)
-# hist(values)
-# 
-# # get hist of num of values per cell of all else
-# # get hist of the value distribution of all else
-# not_index = which(data_tsne$seurat_clusters != 0)
-# not_subset = data_re[not_index,]
-# not_nrow = nrow(not_subset)
-# 
-# not_array = vector()
-# not_values = vector()
-# for (x in 1:not_nrow) {
-#   num = 0
-#   for (y in 1:ncol) {
-#     if (not_subset[x, y] > 0) {
-#       num = num + 1
-#       not_values = append(not_values, not_subset[x, y])
-#     }
-#   }
-#   not_array = append(not_array, num)
-# }
-# hist(not_array)
-# hist(not_values)
 
 
 coords <- data.frame("cell" = 1:length(data_umap$orig.ident),
                      "seurat_clusters" = data_umap$seurat_clusters)
+umap_dir = "C:/Users/jesse/OneDrive/Documents/Multiplex Lab/Data/UMAP_clusters.xlsx"
+write.xlsx(coords, umap_dir, overwrite=TRUE)
 
-write.xlsx(coords, "C:/Users/jesse/OneDrive/Documents/Multiplex Lab/Data/UMAP_clusters.xlsx",
-           overwrite=TRUE)
+
+# Average Nearest Neighbor Distance ----
+location = "C:/Users/jesse/OneDrive/Documents/Multiplex Lab/Data/cell_spatial.xlsx"
+df <- data.frame(read.xlsx(location))
+
+category <- sort(unique(df$cluster_num))
+
+cluster1 = integer()
+cluster2 = integer()
+euclidean_nn = integer()
+
+for (x in 1:(length(category)-1)) { # filtering the data for first cluster
+  first = filter(df, cluster_num == category[x])
+
+  for (v in (x+1):length(category)) {  # filtering the data for second cluster
+    second = filter(df, cluster_num == category[v])
+    print(x)
+    print(v)
+    avg_pair = integer()
+    all_cells = integer()
+  
+    for (y in 1:nrow(first)) { # getting first point's position and creating empty vector
+      x0 = first$x.position[y]
+      y0 = first$y.position[y]
+      one_cell = integer()
+      
+      for (z in 1:nrow(second)) { # finding distance from first point to all second points
+        x1 = second$x.position[z]
+        y1 = second$y.position[z]
+        dist = sqrt((x1-x0)^2 + (y1-y0)^2)
+        one_cell = append(one_cell, dist)
+      }
+      min_dist = min(one_cell)  # nearest neighbor for each first's cell
+      all_cells = append(all_cells, min_dist)  # add a cell's nn to a compilation
+    }
+    avg_pair = mean(all_cells)  # average of all nearest neighbors for both clusters
+    euclidean_nn = append(euclidean_nn, avg_pair)  # compiling all nn to a vector
+    cluster1 = append(cluster1, x)
+    cluster2 = append(cluster2, v)
+  }
+}
+cluster1 = cluster1 - 1  # cluster nomenclature starts at 0
+cluster2 = cluster2 - 1
+
+spatial_distance = data.frame('first_cluster' = cluster1,
+                              'second_cluster' = cluster2,
+                              'avg_nn_distance' = euclidean_nn)
+
+spatial_dir = "C:/Users/jesse/OneDrive/Documents/Multiplex Lab/Data/spatial_distance.xlsx"
+write.xlsx(spatial_distance, spatial_dir, overwrite=TRUE)
