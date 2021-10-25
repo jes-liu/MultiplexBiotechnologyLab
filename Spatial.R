@@ -25,11 +25,12 @@ allProteins <- rownames(allData)
 data_scale <- ScaleData(allData, features=allProteins)
 data_pca <- RunPCA(data_scale, features=VariableFeatures(allData))
 
-data_nn <- FindNeighbors(data_pca, dims=1:25)
+data_nn <- FindNeighbors(data_pca, dims=1:26)
 data_clus <- FindClusters(data_nn)
-data_umap <- RunUMAP(data_clus, dims=1:25, min.dist=.1, spread=2, n.neighbors=50)
+data_umap <- RunUMAP(data_clus, dims=1:26, min.dist=.1, spread=2, n.neighbors=50)
 
-DimPlot(data_umap, label=TRUE)
+DimPlot(data_umap, label=TRUE, pt.size=1, label.size=10) + FontSize(
+  x.text=35, y.text=35, x.title=45, y.title=45) + theme(legend.text=element_text(size=35))
 
 FeaturePlot(data_umap, features=allProteins)  # 1400x2200
 
@@ -50,13 +51,12 @@ cluster1 = integer()
 cluster2 = integer()
 euclidean_nn = integer()
 
-for (x in 1:(length(category)-1)) { # filtering the data for first cluster
+for (x in 1:(length(category))) { # filtering the data for first cluster
   first = filter(df, cluster_num == category[x])
 
-  for (v in (x+1):length(category)) {  # filtering the data for second cluster
+  for (v in (length(category)):1) {  # filtering the data for second cluster
     second = filter(df, cluster_num == category[v])
-    print(x)
-    print(v)
+    print(c("Computing NN cluster pairs:", x, v))
     avg_pair = integer()
     all_cells = integer()
   
@@ -64,18 +64,29 @@ for (x in 1:(length(category)-1)) { # filtering the data for first cluster
       x0 = first$x.position[y]
       y0 = first$y.position[y]
       one_cell = integer()
-      
-      for (z in 1:nrow(second)) { # finding distance from first point to all second points
-        x1 = second$x.position[z]
-        y1 = second$y.position[z]
-        dist = sqrt((x1-x0)^2 + (y1-y0)^2)
-        one_cell = append(one_cell, dist)
+
+      if (x==v) {
+        
+        for (z in 1:(nrow(second)-1)) { # finding distance from first point to all second points
+          x1 = second$x.position[-y][z]
+          y1 = second$y.position[-y][z]
+          dist = sqrt((x1-x0)^2 + (y1-y0)^2)
+          one_cell = append(one_cell, dist)
+        }
+      }
+      else {
+        for (z in 1:nrow(second)) { # finding distance from first point to all second points
+          x1 = second$x.position[z]
+          y1 = second$y.position[z]
+          dist = sqrt((x1-x0)^2 + (y1-y0)^2)
+          one_cell = append(one_cell, dist)
+        }
       }
       min_dist = min(one_cell)  # nearest neighbor for each first's cell
       all_cells = append(all_cells, min_dist)  # add a cell's nn to a compilation
     }
     avg_pair = mean(all_cells)  # average of all nearest neighbors for both clusters
-    euclidean_nn = append(euclidean_nn, avg_pair)  # compiling all nn to a vector
+    euclidean_nn = append(euclidean_nn, avg_pair)  # compiling all mnnd to a vector
     cluster1 = append(cluster1, x)
     cluster2 = append(cluster2, v)
   }
@@ -89,3 +100,31 @@ spatial_distance = data.frame('first_cluster' = cluster1,
 
 spatial_dir = "C:/Users/jesse/OneDrive/Documents/Multiplex Lab/Data/spatial_distance.xlsx"
 write.xlsx(spatial_distance, spatial_dir, overwrite=TRUE)
+
+
+# Creating Heatmap ----
+vec = as.vector(spatial_distance$avg_nn_distance)
+dimnames = list(c(8:0), c(0:8))
+mat = t(matrix(vec, nrow=9, ncol=9, dimnames = dimnames))
+
+library(colorspace)
+pal <- choose_palette()
+# advanced diverging
+# H1 - 255
+# H2 - 12
+# C1 - 50
+# CMAX - 150
+# L1 - 20
+# L2 - 90
+# P1 - 1.0
+# P2 - 1.3
+# n - 16
+
+library(lattice)
+x.scale = list(cex=3, alternating=1)
+y.scale = list(cex=3, alternating=1)
+xlabel = list("First Cluster", cex=4)
+ylabel = list("Second Cluster", cex=4)
+ckey = list(labels=list(cex=3, font=1))
+levelplot(normalize(scale(mat))*max(mat), col.regions=pal, xlab=xlabel, ylab=ylabel,
+          scales=list(x=x.scale, y=y.scale), colorkey=ckey)
